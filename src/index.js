@@ -1,140 +1,65 @@
 import * as THREE from 'three'
-import * as dat from 'dat.gui'
+import { OrbitControls } from './orbit-controls'
 
 function main() {
   const canvas = document.createElement('canvas')
   canvas.id = 'canvas'
   document.body.appendChild(canvas)
-  const renderer = new THREE.WebGLRenderer({canvas})
-
-  const gui = new dat.GUI()
-
-  const fov = 40
-  const aspect = 2 // the canvas default
-  const near = 0.1
-  const far = 1000
-  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far)
-  camera.position.set(0, 50, 0)
-  camera.up.set(0, 0, 1)
-  camera.lookAt(0, 0, 0)
-
-  const scene = new THREE.Scene()
-
-  {
-    const color = 0xffffff
-    const intensity = 3
-    const light = new THREE.PointLight(color, intensity)
-    scene.add(light)
-  }
-
-  const objects = []
-
-  const radius = 1
-  const widthSegments = 6
-  const heightSegments = 6
-  const sphereGeometry = new THREE.SphereGeometry(
-    radius,
-    widthSegments,
-    heightSegments
+  const renderer = new THREE.WebGLRenderer({ canvas })
+  const camera = new THREE.PerspectiveCamera(
+    90,
+    document.body.clientWidth / document.body.clientheight,
+    0.1,
+    100
   )
+  camera.position.z = 0.01
+  const scene = new THREE.Scene()
+  const controls = new OrbitControls(camera, renderer.domElement)
+  useBox()
 
-  const solarSystem = new THREE.Object3D()
-  scene.add(solarSystem)
-  objects.push(solarSystem)
+  function useBox() {
+    const materials = []
+    const texture_left = new THREE.TextureLoader().load(
+      require('./images/scene_left.jpeg')
+    )
+    materials.push(new THREE.MeshBasicMaterial({ map: texture_left }))
 
-  const sunMaterial = new THREE.MeshPhongMaterial({emissive: 0xffff00})
-  const sunMesh = new THREE.Mesh(sphereGeometry, sunMaterial)
-  sunMesh.scale.set(5, 5, 5)
-  solarSystem.add(sunMesh)
-  objects.push(sunMesh)
+    const texture_right = new THREE.TextureLoader().load(
+      require('./images/scene_right.jpeg')
+    )
+    materials.push(new THREE.MeshBasicMaterial({ map: texture_right }))
 
-  const earthOrbit = new THREE.Object3D()
-  earthOrbit.position.x = 10
-  solarSystem.add(earthOrbit)
-  objects.push(earthOrbit)
+    const texture_top = new THREE.TextureLoader().load(
+      require('./images/scene_top.jpeg')
+    )
+    materials.push(new THREE.MeshBasicMaterial({ map: texture_top }))
 
-  const earthMaterial = new THREE.MeshPhongMaterial({
-    color: 0x2233ff,
-    emissive: 0x112244,
-  })
-  const earthMesh = new THREE.Mesh(sphereGeometry, earthMaterial)
-  earthOrbit.add(earthMesh)
-  objects.push(earthMesh)
+    const texture_bottom = new THREE.TextureLoader().load(
+      require('./images/scene_bottom.jpeg')
+    )
+    materials.push(new THREE.MeshBasicMaterial({ map: texture_bottom }))
 
-  const moonOrbit = new THREE.Object3D()
-  moonOrbit.position.x = 2
-  earthOrbit.add(moonOrbit)
+    const texture_front = new THREE.TextureLoader().load(
+      require('./images/scene_front.jpeg')
+    )
+    materials.push(new THREE.MeshBasicMaterial({ map: texture_front }))
 
-  const moonMaterial = new THREE.MeshPhongMaterial({
-    color: 0x888888,
-    emissive: 0x222222,
-  })
-  const moonMesh = new THREE.Mesh(sphereGeometry, moonMaterial)
-  moonMesh.scale.set(0.5, 0.5, 0.5)
-  moonOrbit.add(moonMesh)
-  objects.push(moonMesh)
+    const texture_back = new THREE.TextureLoader().load(
+      require('./images/scene_back.jpeg')
+    )
+    materials.push(new THREE.MeshBasicMaterial({ map: texture_back }))
 
-  class AxisGridHelper {
-    constructor(node, units = 10) {
-      const axes = new THREE.AxesHelper()
-      axes.material.depthTest = false
-      axes.renderOrder = 2 // after the grid
-      node.add(axes)
-
-      const grid = new THREE.GridHelper(units, units)
-      grid.material.depthTest = false
-      grid.renderOrder = 1
-      node.add(grid)
-
-      this.grid = grid
-      this.axes = axes
-      this.visible = false
-    }
-    get visible() {
-      return this._visible
-    }
-    set visible(v) {
-      this._visible = v
-      this.grid.visible = v
-      this.axes.visible = v
-    }
-  }
-
-  function makeAxisGrid(node, label, units) {
-    const helper = new AxisGridHelper(node, units)
-    gui.add(helper, 'visible').name(label)
-  }
-
-  makeAxisGrid(solarSystem, 'solarSystem', 26)
-  makeAxisGrid(sunMesh, 'sunMesh')
-  makeAxisGrid(earthOrbit, 'earthOrbit')
-  makeAxisGrid(earthMesh, 'earthMesh')
-  makeAxisGrid(moonOrbit, 'moonOrbit')
-  makeAxisGrid(moonMesh, 'moonMesh')
-
-  function resizeRendererToDisplaySize(renderer) {
-    const canvas = renderer.domElement
-    const width = canvas.clientWidth
-    const height = canvas.clientHeight
-    const needResize = canvas.width !== width || canvas.height !== height
-    if (needResize) {
-      renderer.setSize(width, height, false)
-    }
-    return needResize
+    const box = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), materials)
+    box.geometry.scale(1, 1, -1)
+    scene.add(box)
   }
 
   function render(time) {
-    time *= 0.001
-
     if (resizeRendererToDisplaySize(renderer)) {
       const canvas = renderer.domElement
       camera.aspect = canvas.clientWidth / canvas.clientHeight
       camera.updateProjectionMatrix()
     }
-
-    objects.forEach((obj) => {
-      obj.rotation.y = time
-    })
 
     renderer.render(scene, camera)
 
@@ -142,6 +67,18 @@ function main() {
   }
 
   requestAnimationFrame(render)
+
+  function resizeRendererToDisplaySize(renderer) {
+    const canvas = renderer.domElement
+    const pixelRatio = window.devicePixelRatio
+    const width = (canvas.clientWidth * pixelRatio) | 0
+    const height = (canvas.clientHeight * pixelRatio) | 0
+    const needResize = canvas.width !== width || canvas.height !== height
+    if (needResize) {
+      renderer.setSize(width, height, false)
+    }
+    return needResize
+  }
 }
 
 main()

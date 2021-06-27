@@ -7,11 +7,13 @@ module.exports = {
     path: path.resolve(__dirname, './docs'),
     filename: 'index_bundle.js',
   },
-  plugins: [new HtmlWebpackPlugin({template: './src/index.html'})],
+  plugins: [new HtmlWebpackPlugin({ template: './src/index.html' })],
   devServer: {
-    contentBase: path.join(__dirname, 'docs'),
     open: true,
     port: 3000,
+    host: '192.168.1.101',
+    hotOnly: true,
+
     proxy: {
       '/api': 'http://localhost:8080',
     },
@@ -25,6 +27,10 @@ module.exports = {
       {
         test: /\.(woff|woff2|ttf|eot)$/,
         use: 'file-loader?name=fonts/[name].[ext]!static',
+      },
+      {
+        test: /\.jpg|png|gif|bmp|jpeg$/,
+        type: 'asset/resource',
       },
     ],
   },
